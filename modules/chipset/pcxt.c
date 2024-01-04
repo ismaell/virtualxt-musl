@@ -26,14 +26,19 @@
 #include <stdio.h>
 #include <string.h>
 
-static struct vxt_pirepheral *pic_create(vxt_allocator *alloc, void *frontend, const char *args) {
+static struct vxt_pirepheral *pic_create_master(vxt_allocator *alloc, void *frontend, const char *args) {
     (void)frontend; (void)args;
-    return vxtu_pic_create(alloc);
+    return vxtu_pic_create(alloc, 0x20);
+}
+
+static struct vxt_pirepheral *pic_create_slave(vxt_allocator *alloc, void *frontend, const char *args) {
+    (void)frontend; (void)args;
+    return vxtu_pic_create(alloc, 0xA0);
 }
 
 static struct vxt_pirepheral *dma_create(vxt_allocator *alloc, void *frontend, const char *args) {
     (void)frontend; (void)args;
-    return vxtu_dma_create(alloc);
+    return vxtu_dma_create(alloc, 0x80);
 }
 
 static struct vxt_pirepheral *pit_create(vxt_allocator *alloc, void *frontend, const char *args) {
@@ -86,4 +91,4 @@ static struct vxt_pirepheral *ppi_create(vxt_allocator *alloc, void *frontend, c
     return p;
 }
 
-VXTU_MODULE_ENTRIES(&pic_create, &dma_create, &pit_create, &ppi_create)
+VXTU_MODULE_ENTRIES(&pic_create_master, &pic_create_slave, &dma_create, &pit_create, &ppi_create)

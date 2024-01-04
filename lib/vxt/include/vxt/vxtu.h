@@ -217,9 +217,9 @@ VXT_API struct vxt_pirepheral *vxtu_memory_create(vxt_allocator *alloc, vxt_poin
 VXT_API void *vxtu_memory_internal_pointer(struct vxt_pirepheral *p);
 VXT_API bool vxtu_memory_device_fill(struct vxt_pirepheral *p, const vxt_byte *data, int size);
 
-VXT_API struct vxt_pirepheral *vxtu_pic_create(vxt_allocator *alloc);
+VXT_API struct vxt_pirepheral *vxtu_pic_create(vxt_allocator *alloc, vxt_word base);
 
-VXT_API struct vxt_pirepheral *vxtu_dma_create(vxt_allocator *alloc);
+VXT_API struct vxt_pirepheral *vxtu_dma_create(vxt_allocator *alloc, vxt_word base);
 
 VXT_API struct vxt_pirepheral *vxtu_pit_create(vxt_allocator *alloc);
 VXT_API double vxtu_pit_get_frequency(struct vxt_pirepheral *p, int channel);

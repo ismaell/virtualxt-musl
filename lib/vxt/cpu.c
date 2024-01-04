@@ -167,7 +167,8 @@ void cpu_reset(CONSTSP(cpu) p) {
    #else
       p->regs.flags = 0xF002;
    #endif
-   p->regs.cs = 0xFFFF;
+   p->regs.cs = 0xF000;
+   p->regs.ip = 0xFFF0;
    p->regs.debug = false;
    p->inst_queue_count = 0;
    cpu_reset_cycle_count(p);

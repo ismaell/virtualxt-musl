@@ -77,11 +77,13 @@ VXT_API void vxt_set_logger(int (*f)(const char*, ...)) {
 }
 
 VXT_API vxt_system *vxt_system_create(vxt_allocator *alloc, enum vxt_cpu_type ty, int frequency, struct vxt_pirepheral * const devs[]) {
-    vxt_system *s = (vxt_system*)alloc(NULL, sizeof(struct system));
+    (void)ty;
+	
+	vxt_system *s = (vxt_system*)alloc(NULL, sizeof(struct system));
     vxt_memclear(s, sizeof(struct system));
     s->alloc = alloc;
     s->frequency = frequency;
-    cpu_init(&s->cpu, s, ty);
+    cpu_init(&s->cpu, s, VXT_CPU_V20);
     
     int i = 1;
     for (; devs && devs[i-1]; i++) {
@@ -143,9 +145,14 @@ VXT_API vxt_error _vxt_system_initialize(CONSTP(vxt_system) s, unsigned reg_size
             vxt_error err = d->install(VXT_GET_DEVICE_PTR(d), s);
             if (err) return err;
         }
-        if (vxt_pirepheral_class(d) == VXT_PCLASS_PIC)
-            s->cpu.pic = d;
+        //if (vxt_pirepheral_class(d) == VXT_PCLASS_PIC)
+        //    s->cpu.pic = d;
     }
+
+	// Assume PC AT
+	s->cpu.pic = s->devices[s->io_map[0x20]];
+	ENSURE(s->cpu.pic);
+	ENSURE(vxt_pirepheral_class(s->cpu.pic) == VXT_PCLASS_PIC);
 
     if (s->cpu.validator)
         s->cpu.validator->initialize(s, s->cpu.validator->userdata);

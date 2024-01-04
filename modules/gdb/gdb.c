@@ -128,6 +128,16 @@ static void mem_write(struct gdb *dbg, vxt_pointer addr, vxt_byte data) {
     p->io.write(VXT_GET_DEVICE_PTR(p), addr, data);
 }
 
+static vxt_byte io_in(struct gdb *dbg, vxt_word port) {
+	(void)dbg; (void)port;
+    return 0;
+}
+
+static void io_out(struct gdb *dbg, vxt_word port, vxt_byte data) {
+	(void)dbg; (void)port;
+	VXT_LOG("POST: 0x%X", data);
+}
+
 static bool open_server_socket(struct gdb *dbg) {
     struct sockaddr_in addr;
     vxt_memclear(&addr, sizeof(addr));
@@ -196,6 +206,8 @@ static vxt_error install(struct gdb *dbg, vxt_system *s) {
     vxt_system_install_mem(s, p, 0, 0xFFFFF);
     vxt_system_install_timer(s, p, 0);
     dbg->reconnect_timer = vxt_system_install_timer(s, p, 1000000);
+
+	vxt_system_install_io_at(s, p, 0x80);
 
     return VXT_NO_ERROR;
 }
@@ -370,4 +382,6 @@ VXTU_MODULE_CREATE(gdb, {
     PIREPHERAL->destroy = &destroy;
     PIREPHERAL->io.read = &mem_read;
     PIREPHERAL->io.write = &mem_write;
+    PIREPHERAL->io.in = &io_in;
+    PIREPHERAL->io.out = &io_out;
 })

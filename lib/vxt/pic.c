@@ -20,6 +20,7 @@
 //
 // 3. This notice may not be removed or altered from any source distribution.
 
+#include "vxt/vxt.h"
 #include <vxt/vxtu.h>
 
 struct pic {
@@ -29,51 +30,46 @@ struct pic {
     vxt_byte icw_step;
     vxt_byte read_mode;
 	vxt_byte icw[5];
+
+	vxt_word base;
+	struct vxt_pirepheral *slave;
 };
 
 static vxt_byte in(struct pic *c, vxt_word port) {
-	switch (port) {
-        case 0x20:
-            return c->read_mode ? c->service_reg : c->request_reg;
-        case 0x21:
-            return c->mask_reg;
-	}
-	return 0;
+	if (port == c->base)
+        return c->read_mode ? c->service_reg : c->request_reg;
+    return c->mask_reg;
 }
 
 static void out(struct pic *c, vxt_word port, vxt_byte data) {
-	switch (port) {
-        case 0x20:
-            if (data & 0x10) {
-                c->icw_step = 1;
-                c->mask_reg = 0;
-                c->icw[c->icw_step++] = data;
-                return;
-            }
+	if (port == c->base) {
+		if (data & 0x10) {
+			c->icw_step = 1;
+			c->mask_reg = 0;
+			c->icw[c->icw_step++] = data;
+			return;
+		}
 
-            if (((data & 0x98) == 8) && (data & 2))
-                c->read_mode = data & 2;
+		if (((data & 0x98) == 8) && (data & 2))
+			c->read_mode = data & 2;
 
-            if (data & 0x20) {
-                for (int i = 0; i < 8; i++) {
-                    if ((c->service_reg >> i) & 1) {
-                        c->service_reg ^= (1 << i);
-                        return;
-                    }
-                }
-            }
-            break;
-        case 0x21:
-            if ((c->icw_step == 3) && (c->icw[1] & 2))
-                c->icw_step = 4;
+		if (data & 0x20) {
+			for (int i = 0; i < 8; i++) {
+				if ((c->service_reg >> i) & 1) {
+					c->service_reg ^= (1 << i);
+					return;
+				}
+			}
+		}
+	} else {
+		if ((c->icw_step == 3) && (c->icw[1] & 2))
+			c->icw_step = 4;
 
-            if (c->icw_step < 5) {
-                c->icw[c->icw_step++] = data;
-                return;
-            }
-
-            c->mask_reg = data;
-            break;
+		if (c->icw_step < 5) {
+			c->icw[c->icw_step++] = data;
+			return;
+		}
+		c->mask_reg = data;
 	}
 }
 
@@ -84,25 +80,48 @@ static int next(struct pic *c) {
         vxt_byte mask = 1 << i;
         if (!(has & mask))
             continue;
-        
+
         if ((c->request_reg & mask) && !(c->service_reg & mask)) {
             c->request_reg ^= mask;
             c->service_reg |= mask;
 
             if (!(c->icw[4] & 2)) // Not auto EOI?
                 c->service_reg |= mask;
-            return (int)c->icw[2] + i;
+
+			if ((i == 2) && c->slave)
+				return c->slave->pic.next(c->slave) + 8;
+			else
+			 	return (int)c->icw[2] + i;
         }
     }
     return -1;
 }
 
 static void irq(struct pic *c, int n) {
+	if ((n > 7) && c->slave) {
+		c->slave->pic.irq(c->slave, n);
+		n = 2;
+	}
     c->request_reg |= (vxt_byte)(1 << n);
 }
 
 static vxt_error install(struct pic *c, vxt_system *s) {
-    vxt_system_install_io(s, VXT_GET_PIREPHERAL(c), 0x20, 0x21);
+	struct vxt_pirepheral *p = VXT_GET_PIREPHERAL(c);
+    vxt_system_install_io(s, p, c->base, c->base + 1);
+
+	// Assume PC AT
+	if (c->base == 0x20) {
+		for (int i = 0; i < VXT_MAX_PIREPHERALS; i++) {
+        	struct vxt_pirepheral *ip = vxt_system_pirepheral(s, (vxt_byte)i);
+			if (!ip || (ip == p))
+				continue;
+
+        	if (vxt_pirepheral_class(ip) == VXT_PCLASS_PIC) {
+				c->slave = ip;
+				break;
+			}
+		}
+	}
     return VXT_NO_ERROR;
 }
 
@@ -119,8 +138,10 @@ static const char *name(struct pic *c) {
     (void)c; return "PIC (Intel 8259)";
 }
 
-VXT_API struct vxt_pirepheral *vxtu_pic_create(vxt_allocator *alloc) VXT_PIREPHERAL_CREATE(alloc, pic, {
-    PIREPHERAL->install = &install;
+VXT_API struct vxt_pirepheral *vxtu_pic_create(vxt_allocator *alloc, vxt_word base) VXT_PIREPHERAL_CREATE(alloc, pic, {
+    DEVICE->base = base;
+
+	PIREPHERAL->install = &install;
     PIREPHERAL->reset = &reset;
     PIREPHERAL->name = &name;
     PIREPHERAL->pclass = &pclass;

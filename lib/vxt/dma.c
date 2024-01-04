@@ -25,6 +25,7 @@
 struct dma {
     bool flip;
     bool mem_to_mem;
+	vxt_word base;
 
 	struct {
         bool masked;
@@ -195,7 +196,9 @@ static void dma_write(struct dma *c, vxt_byte ch, vxt_byte data) {
     update_count(c, ch);
 }
 
-VXT_API struct vxt_pirepheral *vxtu_dma_create(vxt_allocator *alloc) VXT_PIREPHERAL_CREATE(alloc, dma, {
+VXT_API struct vxt_pirepheral *vxtu_dma_create(vxt_allocator *alloc, vxt_word base) VXT_PIREPHERAL_CREATE(alloc, dma, {
+	DEVICE->base = base;
+
     PIREPHERAL->install = &install;
     PIREPHERAL->name = &name;
     PIREPHERAL->pclass = &pclass;

@@ -77,6 +77,8 @@ workspace "virtualxt"
         handle:close()
     end
 
+	defines "VXT_CPU_286"
+
     filter "configurations:debug"
         symbols "On"
         optimize "Off"
@@ -94,9 +96,6 @@ workspace "virtualxt"
 
     filter "options:memclear"
         defines "VXTU_MEMCLEAR"
-
-    filter "options:i286"
-        defines "VXT_CPU_286"
 
     filter "options:validator"
         defines "PI8088"

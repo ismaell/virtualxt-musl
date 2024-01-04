@@ -620,6 +620,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	args = docopt(argc, argv, true, vxt_lib_version());
+	args.v20 = 1;
 	args.rifs = rifs_path ? rifs_path : args.rifs;
 
 	if (!args.config) {
